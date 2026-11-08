@@ -76,7 +76,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <p class="err" id="lockErr"></p>
     <p class="hint">No accounts, no tracking. Your code unlocks Pro on this device, and everything you build stays in this browser — export it any time. License keys activate at launch; this build runs on beta codes.</p>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA</p>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.2</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -365,6 +365,31 @@ const TEMPLATES=[
  {k:"constraints",label:"My hard constraints, restated",ph:"size large only; under $800; nothing bought without my yes",multi:true}],
  build:v=>`Stop. Do not continue the task yet.\nYou crossed this line from my brief: ${v.line||"[name the line]"}.\nMy hard constraints, restated: ${v.constraints||"[list them]"}.\nConfirm back to me: (1) the line you crossed, (2) my constraints as you now understand them, (3) what you will do differently.\nDo not resume until I say continue. If this happens a second time in this session, we stop and I run a prompt autopsy instead.`}
 ];
+const TPL_PURPOSE={
+t1:"Turn a loose ask into a complete one-shot brief: goal, limits, check, stop, output.",
+t2:"Upgrade a quick ask into a briefed task by adding the one line it is missing.",
+t3:"Compare purchases under hard constraints with verified prices — and never buy without my yes.",
+t4:"Research a question with cited sources and honest uncertainty.",
+t5:"Write a message that only ever drafts — it never sends itself.",
+t6:"Budget, compare, or plan from my numbers, with the math shown line by line.",
+t7:"Define a whole area I hand to an agent: mandate, gates, never-lines, reporting, stop conditions.",
+t8:"Write down which actions an agent may do alone, which need my approval, and which are never allowed.",
+t9:"Put a recurring job on a clock, with a report shape, a silence rule, and stop-on-flag.",
+t10:"Ten questions to run before delegating anything, or promoting it a tier.",
+t11:"Stop an agent mid-flight when it crosses a line, and reset it on my constraints."
+};
+function agentHelpText(t){
+  const v={}; let filled=[];
+  t.fields.forEach(fd=>{const el=document.getElementById("tf_"+fd.k); const val=el?el.value.trim():""; v[fd.k]=val; if(val)filled.push("- "+fd.label+": "+val);});
+  let s="You are my AI assistant. I am using Prompt Playbook Pro — the workspace app from the book The Delegated Life — and I want your help with one of its templates: \""+t.title+"\" ("+t.ch+").\nWhat this template is for: "+(TPL_PURPOSE[t.id]||"")+"\n";
+  if(filled.length)s+="\nHere is what I have filled in so far:\n"+filled.join("\n")+"\n";
+  const out=document.getElementById("tf_out"); if(out&&out.value.trim())s+="\nHere is the brief the app built from that:\n```\n"+out.value.trim()+"\n```\n";
+  if(DB.rules&&DB.rules.length)s+="\nMy standing rules, from my playbook: "+DB.rules.join(" ")+"\n";
+  const nevers=[]; (DB.contracts||[]).forEach(c=>(c.never||[]).forEach(n=>nevers.push(n)));
+  if(nevers.length)s+="My never-lines, from my contracts: "+nevers.join(" · ")+"\n";
+  s+="\nPlease do the following:\n1. Explain in plain words what this template is for and when to use it.\n2. Interview me ONE question at a time about my real situation — wait for each answer before asking the next.\n3. Fill the template in with me as we go, and at the end produce the finished, ready-to-paste result.\n4. Respect the book's governance throughout: never send, spend, publish, book, or change anything without my explicit approval of the exact finished thing — one approval covers one action. Treat my never-lines as absolute: quote them back to me verbatim before we start.\n\nStart with step 1, then ask your first question.";
+  return s;
+}
 let currentTpl=null;
 function renderTplList(){
   $("tplList").style.display="block";$("tplForm").style.display="none";
@@ -374,7 +399,7 @@ function renderTplList(){
 function openTpl(id){
   const t=TEMPLATES.find(x=>x.id===id);if(!t)return;currentTpl=t;
   $("tplList").style.display="none";const f=$("tplForm");f.style.display="block";
-  let h='<div class="card"><h3>'+t.n+". "+esc(t.title)+'</h3><p class="hint">'+esc(t.ch)+" · The Delegated Life</p>";
+  let h='<div class="card"><div style="display:flex;align-items:center;gap:10px"><button class="ghost" id="tf_backArrow" aria-label="Back to all templates" style="min-width:44px;min-height:44px;padding:6px 10px;font-size:19px;line-height:1">←</button><h3 style="margin:0">'+t.n+". "+esc(t.title)+'</h3></div><p class="hint">'+esc(t.ch)+" · The Delegated Life</p>";
   t.fields.forEach(fd=>{
     h+='<label>'+esc(fd.label)+'</label>';
     if(fd.type==="select"){h+='<select id="tf_'+fd.k+'">'+fd.options.map(o=>'<option>'+esc(o)+'</option>').join("")+'</select>';}
@@ -383,9 +408,11 @@ function openTpl(id){
   });
   h+='<div class="row"><button id="tf_build">Build it</button><button class="ghost" id="tf_back">All templates</button></div>'+
      '<label>Your brief — copy it into any AI tool</label><textarea class="out" id="tf_out" readonly></textarea>'+
-     '<div class="row"><button class="ghost small" id="tf_copy">Copy</button><button class="ghost small" id="tf_save">Save filled copy</button></div><p class="err" id="tf_msg"></p></div>';
+     '<div class="row"><button class="ghost small" id="tf_copy">Copy</button><button class="ghost small" id="tf_save">Save filled copy</button><button class="small" id="tf_agent">Have your agent help</button></div><p class="hint">“Have your agent help” copies a ready-to-paste prompt for your own AI chat: it explains this template, interviews you one question at a time, and fills it in with you — under the book’s governance.</p><p class="err" id="tf_msg"></p></div>';
   f.innerHTML=h;
   $("tf_back").addEventListener("click",renderTplList);
+  $("tf_backArrow").addEventListener("click",renderTplList);
+  $("tf_agent").addEventListener("click",e=>{copyText(agentHelpText(t),e.target);});
   $("tf_build").addEventListener("click",()=>{const v={};t.fields.forEach(fd=>v[fd.k]=$( "tf_"+fd.k).value);$("tf_out").value=t.build(v);$("tf_msg").textContent="";});
   $("tf_copy").addEventListener("click",e=>{if(!$("tf_out").value)$("tf_build").click();copyText($("tf_out").value,e.target);});
   $("tf_save").addEventListener("click",()=>{if(!$("tf_out").value)$("tf_build").click();DB.filled.push({title:t.title,text:$("tf_out").value,at:Date.now()});saveDB();$("tf_msg").textContent="Saved to this device (filled copies live in your exported playbook data).";renderHome();});
