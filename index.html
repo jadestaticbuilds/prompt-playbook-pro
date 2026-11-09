@@ -85,6 +85,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
 
 <!-- ============ LOCK VIEW ============ -->
 <div id="lockView" class="wrap" style="padding-top:8vh">
+ <div id="lockMain">
   <div class="center">
     <img class="medallionimg" src="medallion.jpg" alt="Jade Static medallion">
     <p class="kicker" style="margin:10px 0 2px">THE DELEGATED LIFE</p>
@@ -97,8 +98,22 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <div class="row"><button id="unlockBtn" style="flex:1">Unlock Pro</button></div>
     <p class="err" id="lockErr"></p>
     <p class="hint">No accounts, no tracking. Your code unlocks Pro on this device, and everything you build stays in this browser — export it any time. License keys activate at launch; this build runs on beta codes.</p>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="sampleBtn" style="flex:1">Read Chapter 1 free — no code needed</button></div>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.12</p>
+ </div>
+  <div id="sampleReader" style="display:none">
+    <div class="row" style="margin:0 0 10px">
+      <button class="ghost" id="sampleBack" style="min-width:44px;min-height:44px;padding:6px 12px">← Back to code entry</button>
+      <span class="hint" style="align-self:center">Free sample — Chapter 1 of 8</span>
+    </div>
+    <div class="bookbody" id="sampleContent"></div>
+    <div class="card" style="margin-top:22px">
+      <h3>That is where the free chapter ends</h3>
+      <p class="hint">The full book, the workspace, the templates, and the Agent Pack unlock with a code.</p>
+      <div class="row"><button id="sampleBack2">Enter your code →</button></div>
+    </div>
+  </div>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.13</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -934,7 +949,23 @@ function setupSpine(){
   if($("bookSearch"))$("bookSearch").addEventListener("input",bookSearchRun);
   document.querySelectorAll("[data-chapter]").forEach(b=>b.addEventListener("click",()=>{go("book");renderChapter(parseInt(b.dataset.chapter,10)-1);}));
 }
+function openSample(){
+  $("sampleContent").innerHTML=mdRender(BOOK[0]);
+  $("lockMain").style.display="none"; $("sampleReader").style.display="block";
+  window.scrollTo(0,0);
+}
+function closeSample(){
+  $("sampleReader").style.display="none"; $("lockMain").style.display="block";
+  window.scrollTo(0,0);
+}
+function setupSample(){
+  if(!$("sampleBtn"))return;
+  $("sampleBtn").addEventListener("click",openSample);
+  $("sampleBack").addEventListener("click",closeSample);
+  $("sampleBack2").addEventListener("click",closeSample);
+}
 setupSpine();
+setupSample();
 
 function renderChapter(i) {
   curChapter = Math.max(0, Math.min(BOOK.length - 1, i));
