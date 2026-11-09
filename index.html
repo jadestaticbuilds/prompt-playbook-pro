@@ -97,7 +97,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <p class="err" id="lockErr"></p>
     <p class="hint">No accounts, no tracking. Your code unlocks Pro on this device, and everything you build stays in this browser — export it any time. License keys activate at launch; this build runs on beta codes.</p>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.9</p>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.10</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -112,7 +112,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
   <section class="view" id="view-home">
     <h2 style="margin:6px 0 2px">Your delegation workspace</h2>
     <p class="hint" style="margin-top:0">Free generates a brief. Pro runs the system. Everything here is saved only on this device.</p>
-    <div id="thanksNote"></div><div id="claimCard"></div><div id="wsCheck"></div>
+    <div id="thanksNote"></div><div id="claimCard"></div><div id="wsCheck"></div><div id="qbHome"></div>
     <div class="card"><h3>Where you stand</h3><div class="stat" id="homeStats"></div>
       <div class="row">
         <button data-go="contract">Build a contract</button>
@@ -133,6 +133,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
   <section class="view" id="view-templates">
     <h2 style="margin:6px 0 2px">Template library</h2>
     <p class="hint" style="margin-top:0">All eleven templates from the book, as fill-in forms. Fill, copy, save.</p>
+    <div class="card" style="border-color:var(--jade)"><h3>New here?</h3><p>Start with Template 1 — the Tier 2 Skeleton. It is the Pattern itself, and every other template is a variation on it.</p><div class="row"><button id="tplStartBtn">Start with Template 1 →</button></div></div>
     <div id="tplList"></div>
     <div id="tplForm" style="display:none"></div>
   </section>
@@ -144,14 +145,16 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <div class="card">
       <label>Area name</label><input type="text" id="c_area" placeholder="e.g. Trail bike price watcher">
       <label>Mandate — what this system is for, and what it is not for</label><textarea id="c_mandate" placeholder="One paragraph."></textarea>
+      <details id="c_more"><summary style="margin:12px 0 2px;cursor:pointer">Gates, never-lines, reporting &amp; stops — the full contract (starter never-lines are already inside)</summary>
       <label>May do alone (one per line)</label><textarea id="c_alone" placeholder="Check the price twice a day&#10;Keep a log of the checks"></textarea>
       <label>May do only with my approval (one per line)</label><textarea id="c_approval" placeholder="Anything beyond watching and logging — show me the exact listing first"></textarea>
       <label>Never (one per line)</label><p class="hint" style="margin:2px 0 4px">Starter defaults are pre-filled below — edit or delete any line. They are a starting point, not a complete list: add the never-lines this area needs.</p><textarea id="c_never" placeholder="Never buy anything without my yes"></textarea>
       <label>Reporting loop</label><textarea id="c_reporting" placeholder="A message when it finds it under $800. Otherwise, silence."></textarea>
       <label>Weekly attention budget (optional)</label><input type="text" id="c_budget" placeholder="e.g. 30 minutes a week — leave blank if you don't want one"><p class="hint" style="margin:2px 0 8px">How much of your time this system may cost you each week — reports, approvals, fixes, all of it. Your number, in your words. Blank is fine.</p>
       <label>Stop conditions</label><textarea id="c_stop" placeholder="If the shop site errors or blocks it, it pauses and tells me."></textarea>
+      </details>
       <div class="checkline"><input type="checkbox" id="c_amtest"><span><b>The 3 a.m. test:</b> I have said the worst plausible outcome of this system out loud, and the contract above makes it impossible, not just unlikely.</span></div>
-      <div class="row"><button id="c_previewBtn" class="ghost">Preview</button><button id="c_copyBtn" class="ghost">Copy contract</button><button id="c_saveBtn">Save to my playbook</button></div>
+      <div class="row"><button id="c_exampleBtn" class="ghost">Fill with an example</button><button id="c_previewBtn" class="ghost">Preview</button><button id="c_copyBtn" class="ghost">Copy contract</button><button id="c_saveBtn">Save to my playbook</button></div>
       <p class="err" id="c_msg"></p>
       <label>Contract preview</label><textarea class="out" id="c_out" readonly></textarea>
     </div>
@@ -197,7 +200,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
       <h2 class="center" style="margin:10px 0 0">The Delegated Life</h2>
       <p class="center hint" style="margin:2px 0 14px">A Prompt Playbook for Running a Personal AI Agent — Safely</p>
       <div class="card"><h3>Chapters</h3><div id="bookChapters"></div>
-      <p class="hint" id="bookResumeNote"></p></div>
+      <p class="hint" id="bookResumeNote"></p></div><div id="qbBook"></div>
     </div>
     <div id="bookReader" style="display:none">
       <div class="row" style="margin:0 0 10px">
@@ -253,6 +256,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
       </select>
       <p class="hint" id="i_suggest"></p>
       <div class="row"><button id="i_addBtn">Add to my asks</button></div>
+      <div class="row"><button class="ghost small" id="i_exampleBtn">Fill with an example</button></div>
       <p class="err" id="i_msg"></p>
       <div id="i_next"></div>
     </div>
@@ -347,8 +351,14 @@ function migrateIfNeeded(){
   if(rec.source==="beta"){rec.source="beta-migration";rec.migratedFrom="beta";rec.thanksShown=false;writeRecord(rec);return true;}
   return false;
 }
+function normalizeCode(raw){
+  const a=(raw||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  let m=a.match(/^DLBETA([A-Z0-9]{6})$/);if(m)return "DL-BETA-"+m[1];
+  m=a.match(/^DLCLAIM([A-Z0-9]+)$/);if(m)return "DL-CLAIM-"+m[1];
+  return (raw||"").trim().toUpperCase();
+}
 async function tryUnlock(){
-  const code=$("codeInput").value.trim().toUpperCase();
+  const code=normalizeCode($("codeInput").value);
   const err=$("lockErr");err.textContent="";
   if(!code){err.textContent=IS_RELEASE?"Enter your license key.":"Enter your beta code.";return;}
   const h=await sha256hex(code);
@@ -505,6 +515,75 @@ function agentHelpText(t){
   s+="\nPlease do the following:\n1. Explain in plain words what this template is for and when to use it.\n2. Interview me ONE question at a time about my real situation — wait for each answer before asking the next.\n3. Fill the template in with me as we go, and at the end produce the finished, ready-to-paste result.\n4. Respect the book's governance throughout: never send, spend, publish, book, or change anything without my explicit approval of the exact finished thing — one approval covers one action. Treat my never-lines as absolute: quote them back to me verbatim before we start.\n\nStart with step 1, then ask your first question.";
   return s;
 }
+
+/* ================= Quick brief (E1) — the free app's loop, at Pro depth ================= */
+const QB_GEN={"labels": {"goal": "Goal", "limits": "Limits", "check": "Check", "stop": "Stop", "output": "Output"}, "goalOnly": "Goal: help me {idea}.", "checks": {"social": "Show me the exact finished post first, so I can approve it before anything is posted.", "app": "Show me how it works before you call it done, test it on a small phone screen, confirm you are publishing the latest version you tested, and check the live links and counts before calling it done.", "cooking": "List the ingredients you are using from what I have, before the steps, so I can spot anything missing.", "recurring": "Report only what actually changed since last time, and say plainly when nothing changed.", "writing": "Show me the finished draft, and flag any sentence that could be read the wrong way.", "planning": "Check the plan against real times, prices, and opening hours where they matter, and flag anything unverified.", "study": "Check your explanation by giving me 3 practice questions, with answers, at the end.", "shopping": "For each option, give the price and where you found it, and say which details you could not verify.", "research": "Cite the source behind each key claim, and flag where sources disagree.", "money": "Show the math, line by line, so I can check every total myself.", "general": "Check your answer against the facts you used, and say what is still uncertain."}, "stops": {"social": "Do not post, send, or publish anything without my yes for that exact post.", "app": "Do not post, send, buy, or book anything without my yes.", "cooking": "Do not invent ingredients I do not have, and do not add steps I did not ask for.", "recurring": "Do not post, send, buy, or book anything without my yes, and do not invent work on quiet days.", "writing": "Do not send or post it anywhere. Draft only, until I say send.", "planning": "Do not book, buy, or reserve anything without my yes.", "study": "Do not guess or invent facts. If you do not know, say so.", "shopping": "Do not buy, order, or book anything without my yes.", "research": "Do not invent facts or citations. If a source does not say it, do not claim it.", "money": "Do not move money, pay a bill, invest, or change an account without my yes.", "general": "Do not guess or invent facts, and do not post, send, buy, or book anything without my yes."}, "bases": {"social": {"limits": "keep it clear, short, and in a normal human voice. No filler words, no hype, and be decisive, not unsure.", "output": "one finished post I can copy and paste, nothing else to fix."}, "app": {"limits": "keep it simple, work on a phone, no signup, no extra features I did not ask for, and keep the first version private until I approve it public.", "output": "a working version I can try right away, plus one line on what to test first."}, "cooking": {"limits": "use only what I actually have, unless I say to suggest shopping. Keep it simple and practical.", "output": "a simple recipe in order, with what to use and how long each step takes."}, "recurring": {"limits": "keep it short, only tell me when something actually changed, and stay quiet on quiet days.", "output": "a short report I can read in under a minute."}, "writing": {"limits": "keep it polite, clear, and short. Use plain words, short sentences, and one clear ask at the end.", "output": "one finished draft I can copy and paste."}, "planning": {"limits": "keep it realistic for time, money, and who is involved. No impossible schedules.", "output": "a simple step-by-step plan, in order, with what to do first."}, "study": {"limits": "explain it in plain words first, then add detail only where I need it. Use examples, not jargon.", "output": "a short explanation, then 3 practice questions with answers."}, "shopping": {"limits": "only use verified current prices and specs. List my hard constraints back to me first, and never suggest a substitute that breaks one.", "output": "a short shortlist, best pick first, with one line on why it wins."}, "research": {"limits": "use reliable sources, prefer recent ones, and separate verified facts from estimates and opinions.", "output": "a short summary, the key findings, and what is still uncertain."}, "money": {"limits": "only use the numbers I gave you. Never move money or change an account. Keep it simple enough to follow weekly.", "output": "a simple breakdown I can follow, with anything over budget flagged."}, "general": {"limits": "keep it clear and practical, and only use information that fits what I asked for.", "output": "a clear answer I can act on, in simple steps."}}, "schedT": "Schedule: run this {when}, report only, and stay quiet on quiet days. The schedule does not remove my approval for anything public or irreversible.", "schedFallback": "on a regular clock", "rulesText": "Rules that travel: this is a standing area, not a one-off task. Keep a short log of what changed and why. Report back what was useful and what was noise. Never publish, post, send, buy, or change an app or account without my yes for that exact item."};
+function qbCategory(idea){
+  const s=idea.toLowerCase();
+  if(/\binstagram\b|\bthreads\b|\bsocial media\b|\bcaption\b|\breel\b|\bpost\b/.test(s))return "social";
+  if(/\bresearch\b|\binvestigate\b|\bfind out\b|\bpros and cons\b/.test(s))return "research";
+  if(/\bcompare\b|\bbuy\b|\bshopping\b|\bshop for\b|\bprice\b|\bdeal\b|\bjacket\b|\bshoes\b|\bphones?\b|\bunder \$/.test(s))return "shopping";
+  if(/\bbudget\b|\bmoney\b|\bexpenses?\b|\bspending\b|\bsalary\b|\bnegotiat\w*\b|\bdebt\b|\bsavings?\b|\bbills?\b/.test(s))return "money";
+  if(/\bapp\b|\bwebsite\b|\bbuild a tool\b|\bprogram\b|\bcode\b/.test(s))return "app";
+  if(/\bevery day\b|\bdaily\b|\bweekly\b|\bremind\w*\b|\broutine\b|\bhabit\b|check.*\bevery\b/.test(s))return "recurring";
+  if(/\bemail\b|\bletter\b|\bmessage\b|\bresume\b|\bcover letter\b|\bwrite\b/.test(s))return "writing";
+  if(/\bplan\b|\btrip\b|\bparty\b|\bbirthday\b|\bvacation\b|\bitinerary\b|\bwedding\b|\bbook\b|\bflight\b|\bhotel\b/.test(s))return "planning";
+  if(/\bcook\w*\b|\brecipe\b|\bfridge\b|\bmeal\b|\bdinner\b|\bbake\b|\bingredients?\b/.test(s))return "cooking";
+  if(/\bstudy\b|\bexam\b|\btest\b|\bhomework\b|\blearn\b/.test(s))return "study";
+  return "general";
+}
+function qbBuild(idea,tier){
+  const g=QB_GEN,L=g.labels,cat=qbCategory(idea);
+  const check=g.checks[cat]||g.checks.general, stop=g.stops[cat]||g.stops.general;
+  if(tier===1)return g.goalOnly.replace("{idea}",idea);
+  const b=g.bases[cat]||g.bases.general;
+  let out=g.goalOnly.replace("{idea}",idea)+"\n"+L.limits+": "+b.limits+"\n"+L.check+": "+check+"\n"+L.stop+": "+stop+"\n"+L.output+": "+b.output;
+  if(tier>=3)out+="\n"+g.rulesText;
+  if(tier===4)out+="\n"+g.schedT.replace("{when}",g.schedFallback);
+  return out;
+}
+const QB_TIER={};
+function qbCardHTML(pre){
+  return '<div class="card" style="border-color:var(--jade)"><h3>Quick brief</h3><p class="hint" style="margin-top:0">The free app\'s three taps, at Pro depth. One line in — a governed brief out.</p>'+
+  '<label>What do you want to hand off?</label><input type="text" id="'+pre+'_idea" placeholder="For example: plan a trip to Miami, write a work email, compare two phones, make a weekly budget">'+
+  '<div class="row" id="'+pre+'_tiers"><button class="ghost small" data-qbt="1">Tier 1 · Just ask</button><button class="ghost small" data-qbt="2">Tier 2 · Do a task</button><button class="ghost small" data-qbt="3">Tier 3 · Run an area</button><button class="ghost small" data-qbt="4">Tier 4 · On a clock</button></div>'+
+  '<div class="row"><button id="'+pre+'_build">Make my brief</button></div>'+
+  '<div id="'+pre+'_outWrap" style="display:none"><label>Your brief — copy it into any AI tool</label><textarea class="out" id="'+pre+'_out" readonly></textarea>'+
+  '<div class="row"><button class="ghost small" id="'+pre+'_copy">Copy brief</button><button class="small" id="'+pre+'_contract">Turn this into a contract →</button></div></div></div>';
+}
+function wireQuickBrief(pre){
+  QB_TIER[pre]=2;
+  const box=$(pre+"_tiers");
+  box.querySelectorAll("[data-qbt]").forEach(b=>b.addEventListener("click",()=>{QB_TIER[pre]=parseInt(b.dataset.qbt,10);box.querySelectorAll("[data-qbt]").forEach(x=>x.classList.toggle("on",x===b));}));
+  $(pre+"_build").addEventListener("click",()=>{
+    const idea=$(pre+"_idea").value.trim();if(!idea){$(pre+"_idea").focus();return;}
+    $(pre+"_out").value=qbBuild(idea,QB_TIER[pre]);$(pre+"_outWrap").style.display="block";
+  });
+  $(pre+"_copy").addEventListener("click",e=>copyText($(pre+"_out").value,e.target));
+  $(pre+"_contract").addEventListener("click",()=>{
+    const idea=$(pre+"_idea").value.trim();
+    startContractFromAsk({ask:idea,gate:"my approval of the exact finished thing"});
+    $("c_mandate").value=$(pre+"_out").value;
+    const d=$("c_more");if(d)d.open=true;
+  });
+}
+function setupQuickBriefs(){
+  if($("qbHome")){$("qbHome").innerHTML=qbCardHTML("qbh");wireQuickBrief("qbh");}
+  if($("qbBook")){$("qbBook").innerHTML=qbCardHTML("qbb");wireQuickBrief("qbb");}
+}
+/* ================= Template examples (E2) ================= */
+const TPL_EXAMPLES={
+t1:{goal:"compare standing desks for a small room",limits:"under $400, top no wider than 120cm",evidence:"verified prices only, from the shop pages themselves",check:"the current price and the shop named for each desk, plus delivery cost",verb:"buy",shape:"shortlist, best first, under 200 words"},
+t2:{which:"Limits — list my hard constraints back to me first",limits:"under $300, before Friday, no layovers"},
+t3:{items:"trail bikes, 29-inch wheels",budget:"800",constraints:"size large, in stock this week, ships to me",mode:"Yes — it can browse"},
+t4:{q:"which neighborhoods in Lisbon are quiet and well-connected",mode:"Yes — it can browse"},
+t5:{msg:"an email asking to renew my lease",to:"my landlord",about:"renewing for 12 months at the same rent, and fixing the leaking tap in the bathroom"},
+t6:{job:"compare these two phone plans over 24 months",nums:"Plan A: $45/mo, phone $199 up front. Plan B: $60/mo, phone included."},
+t8:{globalstop:"Say STOP ALL and every system pauses and reports back"},
+t9:{name:"Morning price watch",runs:"weekdays at 7 a.m.",job:"check the trail bike's price at the two shops I named and log it",off:"Pause the price watch"},
+t11:{line:"you suggested a substitute that breaks my size constraint",constraints:"size large only; under $800; nothing bought without my yes"}
+};
+
 let currentTpl=null;
 function renderTplList(){
   $("tplList").style.display="block";$("tplForm").style.display="none";
@@ -521,13 +600,14 @@ function openTpl(id){
     else if(fd.multi){h+='<textarea id="tf_'+fd.k+'" placeholder="'+esc(fd.ph||"")+'"></textarea>';}
     else{h+='<input type="text" id="tf_'+fd.k+'" placeholder="'+esc(fd.ph||"")+'">';}
   });
-  h+='<div class="row"><button id="tf_build">Build it</button><button class="ghost" id="tf_back">All templates</button></div>'+
+  h+='<div class="row"><button id="tf_build">Build it</button>'+(TPL_EXAMPLES[t.id]?'<button class="ghost" id="tf_example">Fill with an example</button>':'')+'<button class="ghost" id="tf_back">All templates</button></div>'+
      '<label>Your brief — copy it into any AI tool</label><textarea class="out" id="tf_out" readonly></textarea>'+
      '<div class="row"><button class="ghost small" id="tf_copy">Copy</button><button class="ghost small" id="tf_save">Save filled copy</button><button class="small" id="tf_agent">Have your agent help</button></div><p class="hint">“Have your agent help” copies a ready-to-paste prompt for your own AI chat: it explains this template, interviews you one question at a time, and fills it in with you — under the book’s governance.</p><p class="err" id="tf_msg"></p></div>';
   f.innerHTML=h;
   $("tf_back").addEventListener("click",renderTplList);
   $("tf_backArrow").addEventListener("click",renderTplList);
   $("tf_agent").addEventListener("click",e=>{copyText(agentHelpText(t),e.target);});
+  if(TPL_EXAMPLES[t.id]&&$("tf_example")){$("tf_example").addEventListener("click",()=>{const ex=TPL_EXAMPLES[t.id];t.fields.forEach(fd=>{if(ex[fd.k]!==undefined)$("tf_"+fd.k).value=ex[fd.k];});$("tf_msg").textContent="Example filled in — edit it into yours, then Build it.";});}
   $("tf_build").addEventListener("click",()=>{const v={};t.fields.forEach(fd=>v[fd.k]=$( "tf_"+fd.k).value);$("tf_out").value=t.build(v);$("tf_msg").textContent="";});
   $("tf_copy").addEventListener("click",e=>{if(!$("tf_out").value)$("tf_build").click();copyText($("tf_out").value,e.target);});
   $("tf_save").addEventListener("click",()=>{if(!$("tf_out").value)$("tf_build").click();DB.filled.push({title:t.title,text:$("tf_out").value,at:Date.now()});saveDB();$("tf_msg").textContent="Saved to this device (filled copies live in your exported playbook data).";renderHome();});
@@ -550,6 +630,7 @@ function startContractFromAsk(o){
   $("c_area").value=o.ask;
   $("c_mandate").value="Look after this area: "+o.ask+". Gate for anything real: "+o.gate+". (Starter text from your interview — rewrite it in your own words.)";
   prefillNeverDefaults();
+  const dm=$("c_more");if(dm)dm.open=true;
   go("contract");
 }
 function contractText(o){
@@ -563,6 +644,17 @@ function contractText(o){
 function readContractForm(){return {area:$("c_area").value.trim(),mandate:$("c_mandate").value.trim(),alone:lines("c_alone"),approval:lines("c_approval"),never:lines("c_never"),reporting:$("c_reporting").value.trim(),stop:$("c_stop").value.trim(),budget:$("c_budget").value.trim()};}
 function wireContract(){
   prefillNeverDefaults();
+  $("c_exampleBtn").addEventListener("click",()=>{
+    $("c_area").value="Trail bike price watcher";
+    $("c_mandate").value="Watch the two shops I named for the trail bike in size large, log the price each morning, and tell me the moment it drops under $800 ready to buy. Watching and logging only — this system never buys.";
+    $("c_alone").value="Check both shops once a day\nLog the price, stock, and date";
+    $("c_approval").value="Alert me with the exact listing when it drops under $800";
+    $("c_never").value=[DEFAULT_NEVER[0],DEFAULT_NEVER[1],"Never suggest a substitute bike that breaks my size or budget limits."].join("\n");
+    $("c_reporting").value="One message when it drops under $800, with the shop and the total price. Otherwise, silence.";
+    $("c_budget").value="15 minutes";
+    $("c_stop").value="If a shop blocks the check, or the price looks wrong twice in a row, pause and tell me.";
+    $("c_msg").textContent="Example filled in — edit it into yours. The 3 a.m. test stays yours to check.";
+  });
   $("c_previewBtn").addEventListener("click",()=>{$("c_out").value=contractText(readContractForm());$("c_msg").textContent="";});
   $("c_copyBtn").addEventListener("click",e=>{if(!$("c_out").value)$("c_out").value=contractText(readContractForm());copyText($("c_out").value,e.target);});
   $("c_saveBtn").addEventListener("click",()=>{
@@ -602,6 +694,7 @@ function suggestTier(){
 function wirePlaybook(){
   $("ruleAddBtn").addEventListener("click",()=>{const v=$("ruleInput").value.trim();if(!v)return;DB.rules.push(v);$("ruleInput").value="";saveDB();renderRules();renderHome();});
   $("i_kind").addEventListener("change",suggestTier);suggestTier();
+  $("i_exampleBtn").addEventListener("click",()=>{$("i_ask").value="Keep an eye on my inbox for anything from my landlord";$("i_kind").value="watch";$("i_gate").selectedIndex=0;$("i_missing").selectedIndex=0;$("i_msg").textContent="Example filled in — edit it into yours.";});
   $("i_addBtn").addEventListener("click",()=>{
     const ask=$("i_ask").value.trim();const msg=$("i_msg");
     if(!ask){msg.textContent="Name the ask first.";return;}
@@ -708,7 +801,7 @@ document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=
 $("unlockBtn").addEventListener("click",tryUnlock);
 $("codeInput").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock();});
 $("lockBtn").addEventListener("click",lockApp);
-wireContract();wirePlaybook();wireTools();
+wireContract();wirePlaybook();wireTools();setupQuickBriefs();$("tplStartBtn").addEventListener("click",()=>openTpl("t1"));
 </script>
 
 <script>
