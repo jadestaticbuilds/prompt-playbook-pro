@@ -97,7 +97,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <p class="err" id="lockErr"></p>
     <p class="hint">No accounts, no tracking. Your code unlocks Pro on this device, and everything you build stays in this browser — export it any time. License keys activate at launch; this build runs on beta codes.</p>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.10</p>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.11</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -585,9 +585,15 @@ t11:{line:"you suggested a substitute that breaks my size constraint",constraint
 };
 
 let currentTpl=null;
+const TPL_GROUPS=[
+ {title:"Start here — the core moves",ids:["t1","t2"]},
+ {title:"Everyday tasks",ids:["t3","t4","t5","t6"]},
+ {title:"Running systems",ids:["t7","t8","t9"]},
+ {title:"Decisions & rescue",ids:["t10","t11"]}
+];
 function renderTplList(){
   $("tplList").style.display="block";$("tplForm").style.display="none";
-  $("tplList").innerHTML=TEMPLATES.map(t=>'<div class="listitem"><b>'+t.n+". "+esc(t.title)+'</b> <span class="meta">· '+esc(t.ch)+'</span><br><button class="small" style="margin-top:7px" data-tpl="'+t.id+'">Open form</button></div>').join("");
+  $("tplList").innerHTML=TPL_GROUPS.map(g=>'<p class="kicker" style="margin:18px 0 4px">'+esc(g.title)+'</p>'+g.ids.map(id=>{const t=TEMPLATES.find(x=>x.id===id);return '<div class="listitem"><b>'+t.n+". "+esc(t.title)+'</b> <span class="meta">· '+esc(t.ch)+'</span><br><button class="small" style="margin-top:7px" data-tpl="'+t.id+'">Open form</button></div>';}).join("")).join("");
   $("tplList").querySelectorAll("[data-tpl]").forEach(b=>b.addEventListener("click",()=>openTpl(b.dataset.tpl)));
 }
 function openTpl(id){
