@@ -91,7 +91,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <p class="err" id="lockErr"></p>
     <p class="hint">No accounts, no tracking. Your code unlocks Pro on this device, and everything you build stays in this browser — export it any time. License keys activate at launch; this build runs on beta codes.</p>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.7</p>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.8</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -103,7 +103,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
 <div class="wrap">
 
   <!-- HOME -->
-  <section class="view on" id="view-home">
+  <section class="view" id="view-home">
     <h2 style="margin:6px 0 2px">Your delegation workspace</h2>
     <p class="hint" style="margin-top:0">Free generates a brief. Pro runs the system. Everything here is saved only on this device.</p>
     <div id="thanksNote"></div><div id="claimCard"></div><div id="wsCheck"></div>
@@ -185,7 +185,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
   </section>
 
   <!-- BOOK -->
-  <section class="view" id="view-book">
+  <section class="view on" id="view-book">
     <div id="bookIndex">
       <img class="coverimg" src="cover.jpg" alt="The Delegated Life — cover">
       <h2 class="center" style="margin:10px 0 0">The Delegated Life</h2>
@@ -277,12 +277,12 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
 
 </div>
 <nav class="bottom" id="mainNav" style="display:none">
-  <button data-go="home" class="on"><span class="ic">✳</span>Home</button>
+  <button data-go="home"><span class="ic">✳</span>Home</button>
   <button data-go="templates"><span class="ic">▤</span>Templates</button>
   <button data-go="contract"><span class="ic">✎</span>Contract</button>
   <button data-go="playbook"><span class="ic">☰</span>Playbook</button>
   <button data-go="plan"><span class="ic">◔</span>Plan</button>
-  <button data-go="book"><span class="ic">📖</span>Book</button>
+  <button data-go="book" class="on"><span class="ic">📖</span>Book</button>
   <button data-go="tools"><span class="ic">⚒</span>Tools</button>
 </nav>
 </div>
@@ -392,7 +392,7 @@ async function claimCopy(){
   if(CLAIM_HASHES.indexOf(h)>=0){const r=readRecord();if(r){r.claimStatus="claimed";writeRecord(r);}renderAccess();}
   else{msg.textContent="That code doesn't match. Claim codes go out to beta readers at launch — check the code and try again.";}
 }
-function enterApp(){$("lockView").style.display="none";$("appView").style.display="block";$("mainNav").style.display="flex";renderAll();window.scrollTo(0,0);}
+function enterApp(){$("lockView").style.display="none";$("appView").style.display="block";$("mainNav").style.display="flex";renderAll();go("book");openBook();window.scrollTo(0,0);}
 function lockApp(){localStorage.removeItem(LS_UNLOCK);localStorage.removeItem(LS_RECORD);location.reload();}
 
 /* ---------- navigation ---------- */
