@@ -91,7 +91,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
     <p class="err" id="lockErr"></p>
     <p class="hint">No accounts, no tracking. Your code unlocks Pro on this device, and everything you build stays in this browser — export it any time. License keys activate at launch; this build runs on beta codes.</p>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.4</p>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.5</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -106,6 +106,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
   <section class="view on" id="view-home">
     <h2 style="margin:6px 0 2px">Your delegation workspace</h2>
     <p class="hint" style="margin-top:0">Free generates a brief. Pro runs the system. Everything here is saved only on this device.</p>
+    <div id="thanksNote"></div><div id="claimCard"></div>
     <div class="card"><h3>Where you stand</h3><div class="stat" id="homeStats"></div>
       <div class="row">
         <button data-go="contract">Build a contract</button>
@@ -292,6 +293,12 @@ const BETA_HASHES = [
 "f15c1c962f96a049069ebd8712dc7b69d16e5676ecd27b380e2c47bd6009c7ab","3ded4751bd2d57d55dc7c9cd6ca02f0bc64251b5e56925f4f6fa6541bce90f8e","d9fc6df773f513332c987ec4ba7bea54e335d7cef111648e1e4017383f74321a","3340b55793a56162f222bb0ed0dafcd033575271d42aed183cb8478e733c1534","ba072656bdfbdf658d65b8f27ad49029fb05832160525104e93908a7a391dd55","16f9844ea06dd58ab35fe1a1469bb8404680f58f2a6c85734483804ef0e06cf0","15cb0003843001caea079fe715deac2ec1ed793a598dd4743e44b959c6be3db4","b3e6e1a252f9ed6bf72429f96dd1ba0bb7f76f78ff428abbdf2db980576a7d32","a72fc26441f483a56198fa1a6681a0f22924cb9502c5af0cf538f8e112f40061","786648bd46b3b3ab1d5ec1d17dea06fea874f2e265b8e297655915ae0033822b","e7de34373ce4deb903e7a3b6180e3554d1a11890dfdf4f03ef884deb1c5f0da3","b855e3d758a700c734cf7093bce61a3078c624302619fa422fb069b71a8ae8c1"
 ];
 const LS_KEY = "pppro_v1", LS_UNLOCK = "pppro_unlocked";
+const LS_RECORD = "pppro_unlock_record";
+const IS_RELEASE = false; /* beta build. Release build flips this and adds Gumroad key verification (Phase 1). */
+/* FROZEN unlock record format v1 (see build brief): JSON at LS_RECORD —
+   {v:1, source:"beta"|"beta-migration"|"gumroad", hash:<sha256 of code/key, or "legacy-pre0.5">,
+    ts:<ISO 8601>, migratedFrom?:"beta", thanksShown:bool, claimStatus:"none"|"claimed"} */
+const CLAIM_HASHES = ["c7d6ccea01999b42e281e45710ffcbe02cc9b7b6bd42b3702fb68f74bcf09604"]; /* DUMMY claim code for build/test only (DL-CLAIM-DEMO1); real 100%-off claim codes are created in Phase 1. */
 const STARTER_RULES = [
 "Verify before you say done.",
 "Show the exact thing, not a description of it.",
@@ -317,16 +324,56 @@ async function sha256hex(str){
   if(window.crypto&&crypto.subtle){const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(str));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");}
   let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (h2>>>0).toString(16).padStart(8,"0")+(h1>>>0).toString(16).padStart(8,"0");
 }
+/* ---------- unlock record (frozen format v1) ---------- */
+function readRecord(){try{const r=localStorage.getItem(LS_RECORD);return r?JSON.parse(r):null;}catch(e){return null;}}
+function writeRecord(rec){try{localStorage.setItem(LS_RECORD,JSON.stringify(rec));}catch(e){}}
+function isUnlocked(){const r=readRecord();if(r&&r.v===1&&(r.source==="beta"||r.source==="beta-migration"||r.source==="gumroad"))return true;return !!localStorage.getItem(LS_UNLOCK);}
+function ensureRecord(){
+  const existing=readRecord();if(existing)return existing;
+  if(localStorage.getItem(LS_UNLOCK)){const rec={v:1,source:"beta",hash:"legacy-pre0.5",ts:new Date().toISOString(),thanksShown:false,claimStatus:"none"};writeRecord(rec);return rec;}
+  return null;
+}
+function migrateIfNeeded(){
+  const rec=ensureRecord();if(!rec)return false;
+  if(rec.source==="beta"){rec.source="beta-migration";rec.migratedFrom="beta";rec.thanksShown=false;writeRecord(rec);return true;}
+  return false;
+}
 async function tryUnlock(){
   const code=$("codeInput").value.trim().toUpperCase();
   const err=$("lockErr");err.textContent="";
-  if(!code){err.textContent="Enter your beta code.";return;}
+  if(!code){err.textContent=IS_RELEASE?"Enter your license key.":"Enter your beta code.";return;}
   const h=await sha256hex(code);
-  if(BETA_HASHES.indexOf(h)>=0){localStorage.setItem(LS_UNLOCK,"beta");enterApp();}
-  else{err.textContent="That code doesn't match this beta build. Check it and try again — codes look like DL-BETA-XXXXXX.";}
+  if(!IS_RELEASE){
+    if(BETA_HASHES.indexOf(h)>=0){writeRecord({v:1,source:"beta",hash:h,ts:new Date().toISOString(),thanksShown:false,claimStatus:"none"});localStorage.setItem(LS_UNLOCK,"beta");enterApp();}
+    else{err.textContent="That code doesn't match this beta build. Check it and try again — codes look like DL-BETA-XXXXXX.";}
+  }else{
+    err.textContent="Beta codes don't work in the release build — use your Gumroad license key. (If you unlocked the beta on this device, it carries over automatically.)";
+  }
+}
+/* ---------- migration thank-you + Gumroad claim (release) ---------- */
+function renderAccess(){
+  const rec=readRecord();const tn=$("thanksNote"),cc=$("claimCard");if(!tn||!cc)return;
+  if(rec&&rec.source==="beta-migration"&&!rec.thanksShown){
+    tn.innerHTML='<div class="card" style="border-color:var(--jade)"><h3>Thank you for beta-testing this</h3><p>Your beta unlock carried over — Pro is yours, no new code needed, and everything you saved is right where you left it.</p><div class="row"><button id="thanksOk">Got it</button></div></div>';
+    $("thanksOk").addEventListener("click",()=>{const r=readRecord();if(r){r.thanksShown=true;writeRecord(r);}renderAccess();});
+  }else{tn.innerHTML="";}
+  if(rec&&rec.source==="beta-migration"&&rec.claimStatus==="claimed"){
+    cc.innerHTML='<div class="card"><h3>Gumroad copy claimed ✓</h3><p>Your official copy is attached to your purchase record. This device stays unlocked either way.</p></div>';
+  }else if(rec&&rec.source==="beta-migration"){
+    cc.innerHTML='<div class="card"><h3>Claim your official Gumroad copy (optional)</h3><p>Your migrated unlock already gives you Pro on this device. If you were sent a claim code, redeem it here to attach the official Gumroad copy — receipt, library entry, and the final release files.</p><label class="fld">Claim code<input id="claimCode" type="text" placeholder="DL-CLAIM-..." autocomplete="off"></label><div class="row"><button id="claimBtn">Claim my copy</button><button class="ghost" id="claimSkip">Not now</button></div><p class="hint" id="claimMsg"></p></div>';
+    $("claimBtn").addEventListener("click",claimCopy);
+    $("claimSkip").addEventListener("click",()=>{cc.innerHTML="";});
+  }else{cc.innerHTML="";}
+}
+async function claimCopy(){
+  const code=$("claimCode").value.trim().toUpperCase();const msg=$("claimMsg");
+  if(!code){msg.textContent="Enter your claim code.";return;}
+  const h=await sha256hex(code);
+  if(CLAIM_HASHES.indexOf(h)>=0){const r=readRecord();if(r){r.claimStatus="claimed";writeRecord(r);}renderAccess();}
+  else{msg.textContent="That code doesn't match. Claim codes go out to beta readers at launch — check the code and try again.";}
 }
 function enterApp(){$("lockView").style.display="none";$("appView").style.display="block";$("mainNav").style.display="flex";renderAll();window.scrollTo(0,0);}
-function lockApp(){localStorage.removeItem(LS_UNLOCK);location.reload();}
+function lockApp(){localStorage.removeItem(LS_UNLOCK);localStorage.removeItem(LS_RECORD);location.reload();}
 
 /* ---------- navigation ---------- */
 function go(view){
@@ -341,6 +388,7 @@ function showTool(name){
 }
 function renderAll(){renderHome();renderContracts();renderRules();renderAsks();renderPlan();renderTracker();renderAutopsies();renderChecklist();renderTplList();renderBookIndex();}
 function renderHome(){
+  renderAccess();
   const doneDays=Object.values(DB.plan).filter(d=>d&&d.done).length;
   $("homeStats").innerHTML=
    '<div><b>'+DB.contracts.length+'</b><span>contracts saved</span></div>'+
@@ -617,7 +665,6 @@ $("unlockBtn").addEventListener("click",tryUnlock);
 $("codeInput").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock();});
 $("lockBtn").addEventListener("click",lockApp);
 wireContract();wirePlaybook();wireTools();
-if(localStorage.getItem(LS_UNLOCK)){enterApp();}
 </script>
 
 <script>
@@ -702,6 +749,10 @@ function wireBook() {
   $("bookNext").addEventListener("click", () => renderChapter(curChapter + 1));
 }
 wireBook();
+/* boot LAST: after every script block has defined its pieces (renderAll touches the Book index) */
+ensureRecord();
+if(IS_RELEASE){migrateIfNeeded();}
+if(isUnlocked()){enterApp();}
 </script>
 
 </body>
