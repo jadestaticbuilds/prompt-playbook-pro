@@ -17,6 +17,9 @@ input,textarea,select{font-family:inherit;font-size:16px;-webkit-user-select:tex
 h1,h2,h3,.sans{font-family:"Montserrat",system-ui,sans-serif}
 .wrap{max-width:760px;margin:0 auto;padding:18px 16px 96px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 14px}
+#view-home .card,#view-book .card{background:transparent;border-color:transparent}
+#view-home .qbcard,#view-book .qbcard{background:var(--panel)}
+#view-book .actioncard{background:var(--panel);border-color:var(--line)}
 .card h3{margin:0 0 6px;font-size:17px;color:var(--jade2)}
 .card p{margin:4px 0;color:var(--muted)}
 button{font-family:"Montserrat",system-ui,sans-serif;font-weight:600;border-radius:10px;border:1px solid var(--jade);background:var(--jade);color:#04120c;padding:12px 16px;cursor:pointer;font-size:15px}
@@ -114,7 +117,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
       <div class="row"><button id="sampleBack2">Enter your code →</button></div>
     </div>
   </div>
-  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.13</p>
+  <p class="center hint">JADE STATIC BUILDS · BETA BUILD 0.14</p>
 </div>
 
 <!-- ============ APP VIEW ============ -->
@@ -129,7 +132,7 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
   <section class="view" id="view-home">
     <h2 style="margin:6px 0 2px">Your delegation workspace</h2>
     <p class="hint" style="margin-top:0">Free generates a brief. Pro runs the system. Everything here is saved only on this device.</p>
-    <div id="thanksNote"></div><div id="claimCard"></div><div id="wsCheck"></div><div id="qbHome"></div>
+    <div id="thanksNote"></div><div id="claimCard"></div><div id="qbHome"></div><div id="wsCheck"></div>
     <div class="card"><h3>Where you stand</h3><div class="stat" id="homeStats"></div>
       <div class="row">
         <button data-go="contract">Build a contract</button>
@@ -221,9 +224,10 @@ th{font-family:"Montserrat",system-ui,sans-serif;font-size:12px;color:var(--jade
       <div class="bookglow"><img class="coverimg" src="cover.jpg" alt="The Delegated Life — cover"></div>
       <h2 class="center" style="margin:10px 0 0">The Delegated Life</h2>
       <p class="center hint" style="margin:2px 0 14px">A Prompt Playbook for Running a Personal AI Agent — Safely</p>
+      <div id="qbBook"></div>
       <div class="card"><h3>Search the book</h3><input type="text" id="bookSearch" placeholder="Try: approval, silence, rescue, budget…"><div id="bookResults"></div></div>
       <div class="card"><h3>Chapters</h3><div id="bookChapters"></div>
-      <p class="hint" id="bookResumeNote"></p></div><div id="qbBook"></div>
+      <p class="hint" id="bookResumeNote"></p></div>
     </div>
     <div id="bookReader" style="display:none">
       <div class="row" style="margin:0 0 10px">
@@ -570,21 +574,21 @@ function qbBuild(idea,tier){
 }
 const QB_TIER={};
 function qbCardHTML(pre){
-  return '<div class="card" style="border-color:var(--jade)"><h3>Quick brief</h3><p class="hint" style="margin-top:0">The free app\'s three taps, at Pro depth. One line in — a governed brief out.</p>'+
+  return '<div class="card qbcard" style="border-color:var(--jade)"><h3>Quick brief</h3><p class="hint" style="margin-top:0">The free app\'s three taps, at Pro depth. One line in — a governed brief out.</p>'+
   '<label>What do you want to hand off?</label><input type="text" id="'+pre+'_idea" placeholder="For example: plan a trip to Miami, write a work email, compare two phones, make a weekly budget">'+
   '<div class="row" id="'+pre+'_tiers"><button class="ghost small" data-qbt="1">Tier 1 · Just ask</button><button class="ghost small" data-qbt="2">Tier 2 · Do a task</button><button class="ghost small" data-qbt="3">Tier 3 · Run an area</button><button class="ghost small" data-qbt="4">Tier 4 · On a clock</button></div>'+
-  '<div class="row"><button id="'+pre+'_build">Make my brief</button></div>'+
-  '<div id="'+pre+'_outWrap" style="display:none"><label>Your brief — copy it into any AI tool</label><textarea class="out" id="'+pre+'_out" readonly></textarea>'+
-  '<div class="row"><button class="ghost small" id="'+pre+'_copy">Copy brief</button><button class="small" id="'+pre+'_contract">Turn this into a contract →</button></div></div></div>';
+  '<div id="'+pre+'_outWrap"><label>Your brief — appears as you type, copy it into any AI tool</label><textarea class="out" id="'+pre+'_out" readonly placeholder="Start typing above. Your brief builds itself here."></textarea>'+
+  '<div class="row"><button id="'+pre+'_copy">Copy brief</button><button class="ghost small" id="'+pre+'_contract">Turn this into a contract →</button></div></div></div>';
+}
+function qbRender(pre){
+  const idea=$(pre+"_idea").value.trim();
+  $(pre+"_out").value=idea?qbBuild(idea,QB_TIER[pre]):"";
 }
 function wireQuickBrief(pre){
   QB_TIER[pre]=2;
   const box=$(pre+"_tiers");
-  box.querySelectorAll("[data-qbt]").forEach(b=>b.addEventListener("click",()=>{QB_TIER[pre]=parseInt(b.dataset.qbt,10);box.querySelectorAll("[data-qbt]").forEach(x=>x.classList.toggle("on",x===b));}));
-  $(pre+"_build").addEventListener("click",()=>{
-    const idea=$(pre+"_idea").value.trim();if(!idea){$(pre+"_idea").focus();return;}
-    $(pre+"_out").value=qbBuild(idea,QB_TIER[pre]);$(pre+"_outWrap").style.display="block";
-  });
+  box.querySelectorAll("[data-qbt]").forEach(b=>b.addEventListener("click",()=>{QB_TIER[pre]=parseInt(b.dataset.qbt,10);box.querySelectorAll("[data-qbt]").forEach(x=>x.classList.toggle("on",x===b));qbRender(pre);}));
+  $(pre+"_idea").addEventListener("input",()=>qbRender(pre));
   $(pre+"_copy").addEventListener("click",e=>copyText($(pre+"_out").value,e.target));
   $(pre+"_contract").addEventListener("click",()=>{
     const idea=$(pre+"_idea").value.trim();
@@ -926,7 +930,7 @@ function renderBookTool(){
   const el=$("bookTool");if(!el)return;
   const items=BOOK_TOOLS[curChapter]||[];
   if(!items.length){el.innerHTML="";return;}
-  el.innerHTML='<div class="card" style="margin-top:20px"><h3>Put this chapter to work</h3><div class="row">'+items.map((b,i)=>'<button class="'+(i===0?"":"ghost")+'" data-btool="'+esc(b[0])+'">'+esc(b[1])+'</button>').join("")+'</div></div>';
+  el.innerHTML='<div class="card actioncard" style="margin-top:20px"><h3>Put this chapter to work</h3><div class="row">'+items.map((b,i)=>'<button class="'+(i===0?"":"ghost")+'" data-btool="'+esc(b[0])+'">'+esc(b[1])+'</button>').join("")+'</div></div>';
   el.querySelectorAll("[data-btool]").forEach(b=>b.addEventListener("click",()=>bookToolGo(b.dataset.btool)));
 }
 function bookSearchRun(){
